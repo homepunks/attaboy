@@ -9,7 +9,7 @@ import (
 	"github.com/homepunks/attaboy/internal/config"
 )
 
-func HandleTextMessage(upd Update, cfg config.Config) {
+func handleTextMessage(upd Update, cfg config.Config) {
 	chatID := upd.Message.Chat.ID
 	userText := upd.Message.Text
 
