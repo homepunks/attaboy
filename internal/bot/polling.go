@@ -40,7 +40,9 @@ func PollUpdates(offset int64, cfg config.Config) {
 		for _, upd := range apiResponse.Result {
 			offset = upd.UpdateID + 1
 
-			handleUpdate(upd, cfg)
+			go func(upd Update) {
+				handleUpdate(upd, cfg)
+			}(upd)
 		}
 	}
 }
