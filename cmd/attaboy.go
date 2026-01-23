@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/homepunks/attaboy/internal/config"
 	"github.com/homepunks/attaboy/internal/bot"
+	"github.com/homepunks/attaboy/internal/config"
 )
 
 func main() {

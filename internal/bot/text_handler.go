@@ -3,8 +3,8 @@ package bot
 import (
 	"bytes"
 	"encoding/json"
-	"net/http"
 	"fmt"
+	"net/http"
 
 	"github.com/homepunks/attaboy/internal/config"
 )
@@ -21,7 +21,7 @@ func sendMessage(chatID int64, text string, cfg config.Config) error {
 
 	msg := map[string]any{
 		"chat_id": chatID,
-		"text": text,
+		"text":    text,
 	}
 
 	jsonData, err := json.Marshal(msg)

@@ -7,7 +7,7 @@ import (
 
 type Config struct {
 	BotToken string
-	BaseURL string
+	BaseURL  string
 }
 
 func LoadConfig() (*Config, error) {
@@ -18,6 +18,6 @@ func LoadConfig() (*Config, error) {
 
 	return &Config{
 		BotToken: token,
-		BaseURL: "https://api.telegram.org/bot",
+		BaseURL:  "https://api.telegram.org/bot",
 	}, nil
 }
