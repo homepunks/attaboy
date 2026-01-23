@@ -11,9 +11,10 @@ import (
 
 func handleTextMessage(upd Update, cfg config.Config) {
 	chatID := upd.Message.Chat.ID
-	userText := upd.Message.Text
+	// userText := upd.Message.Text
+	text := "greetings from attaboy! i can help you be present when absent."
 
-	sendMessage(chatID, userText, cfg)
+	sendMessage(chatID, text, cfg)
 }
 
 func sendMessage(chatID int64, text string, cfg config.Config) error {

@@ -53,6 +53,9 @@ func PollUpdates(offset int64, cfg config.Config) {
 
 func handleUpdate(upd Update, cfg config.Config) {
 	if upd.Message.Text != "" {
+		log.Printf("Received: `%s` from %s (@%s)",
+			upd.Message.Text, upd.Message.Chat.Name, upd.Message.Chat.Username)
+		
 		handleTextMessage(upd, cfg)
 	}
 }

@@ -14,6 +14,7 @@ type Message struct {
 
 type Chat struct {
 	ID       int64  `json:"id"`
+	Name     string `json:"first_name"`
 	Username string `json:"username"`
 }
 
