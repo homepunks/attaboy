@@ -18,7 +18,7 @@ func PollUpdates(offset int64, cfg config.Config) {
 
 		resp, err := http.Get(url)
 		if err != nil {
-			log.Printf("Error getting updates: %v\n", err)
+			log.Printf("Error getting updates: %v", err)
 			time.Sleep(5 * time.Second)
 			continue
 		}
@@ -26,7 +26,7 @@ func PollUpdates(offset int64, cfg config.Config) {
 		body, err := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		if err != nil {
-			log.Printf("Error reading body: %v\n", err)
+			log.Printf("Error reading body: %v", err)
 			continue
 		}
 
@@ -57,5 +57,17 @@ func handleUpdate(upd Update, cfg config.Config) {
 			upd.Message.Text, upd.Message.Chat.Name, upd.Message.Chat.Username)
 		
 		handleTextMessage(upd, cfg)
+	} else {
+		if upd.Message.Photo != nil {
+			handlePhoto(upd, cfg)
+		} else {
+			handleErr(upd, cfg)
+		}
 	}
 }
+
+
+
+
+
+

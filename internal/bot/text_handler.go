@@ -14,10 +14,12 @@ func handleTextMessage(upd Update, cfg config.Config) {
 	// userText := upd.Message.Text
 	text := "greetings from attaboy! i can help you be present when absent."
 
-	sendMessage(chatID, text, cfg)
+	if err := sendMessage(chatID, cfg, text); err != nil {
+		log.Printf("")
+	}
 }
 
-func sendMessage(chatID int64, text string, cfg config.Config) error {
+func sendMessage(chatID int64, cfg config.Config, text string) error { 
 	url := fmt.Sprintf("%s%s/sendMessage", cfg.BaseURL, cfg.BotToken)
 
 	msg := map[string]any{
