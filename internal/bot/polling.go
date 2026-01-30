@@ -55,7 +55,7 @@ func handleUpdate(upd Update, cfg config.Config) {
 	if upd.Message.Text != "" {
 		log.Printf("Received: `%s` from %s (@%s)",
 			upd.Message.Text, upd.Message.Chat.Name, upd.Message.Chat.Username)
-		
+
 		handleTextMessage(upd, cfg)
 	} else {
 		if upd.Message.Photo != nil {
@@ -66,8 +66,6 @@ func handleUpdate(upd Update, cfg config.Config) {
 	}
 }
 
-
-
-
-
-
+func handleErr(upd Update, cfg config.Config) {
+	sendMessage(upd.Message.Chat.ID, cfg, "Could not recognize your message. Send me your QR!")
+}

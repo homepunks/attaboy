@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/homepunks/attaboy/internal/config"
@@ -15,11 +16,12 @@ func handleTextMessage(upd Update, cfg config.Config) {
 	text := "greetings from attaboy! i can help you be present when absent."
 
 	if err := sendMessage(chatID, cfg, text); err != nil {
-		log.Printf("")
+		log.Printf("Could not send message to %s (@%s)",
+			upd.Message.Chat.Name, upd.Message.Chat.Username)
 	}
 }
 
-func sendMessage(chatID int64, cfg config.Config, text string) error { 
+func sendMessage(chatID int64, cfg config.Config, text string) error {
 	url := fmt.Sprintf("%s%s/sendMessage", cfg.BaseURL, cfg.BotToken)
 
 	msg := map[string]any{
