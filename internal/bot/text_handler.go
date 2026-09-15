@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 
@@ -11,13 +12,14 @@ import (
 )
 
 func handleTextMessage(upd Update, cfg config.Config) {
-	chatID := upd.Message.Chat.ID
 	// userText := upd.Message.Text
-	text := "greetings from attaboy! i can help you be present when absent."
+	reply(upd, cfg, "greetings from attaboy! i can help you be present when absent.")
+}
 
-	if err := sendMessage(chatID, cfg, text); err != nil {
-		log.Printf("Could not send message to %s (@%s)",
-			upd.Message.Chat.Name, upd.Message.Chat.Username)
+func reply(upd Update, cfg config.Config, text string) {
+	if err := sendMessage(upd.Message.Chat.ID, cfg, text); err != nil {
+		log.Printf("Could not send message to %s (@%s): %v",
+			upd.Message.Chat.Name, upd.Message.Chat.Username, err)
 	}
 }
 
@@ -38,8 +40,12 @@ func sendMessage(chatID int64, cfg config.Config, text string) error {
 	if err != nil {
 		return err
 	}
-
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("sendMessage failed: %s: %s", resp.Status, body)
+	}
 
 	return nil
 }

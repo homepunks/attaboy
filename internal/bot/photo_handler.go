@@ -2,6 +2,7 @@ package bot
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -16,11 +17,8 @@ func handlePhoto(upd Update, cfg config.Config) {
 	chatID := upd.Message.Chat.ID
 
 	if len(upd.Message.Photo) == 0 {
-		if err := sendMessage(chatID, cfg, "No photo found"); err != nil {
-			log.Printf("Could not send message to %s (@%s)",
-				upd.Message.Chat.Name, upd.Message.Chat.Username)
-			return
-		}
+		reply(upd, cfg, "No photo found")
+		return
 	}
 
 	photo := upd.Message.Photo[len(upd.Message.Photo)-1]
@@ -28,28 +26,33 @@ func handlePhoto(upd Update, cfg config.Config) {
 	photoBytes, err := downloadPhoto(photo.FileID, cfg)
 	if err != nil {
 		log.Printf("Could not download image: %v", err)
-		if err := sendMessage(chatID, cfg, "Failed to download image"); err != nil {
-			log.Printf("Could not send message to %s (@%s)",
-				upd.Message.Chat.Name, upd.Message.Chat.Username)
-		}
+		reply(upd, cfg, "Failed to download image")
 		return
 	}
 
-	if qr.DetectQR(photoBytes) {
-		link, err := qr.ScanQR(photoBytes)
-		if err != nil {
-			log.Printf("Error scanning QR: %v", err)
-			sendMessage(chatID, cfg, "Found QR but could not extract link")
-			return
-		}
+	link, err := qr.ScanQR(photoBytes)
+	if errors.Is(err, qr.ErrNoQR) {
+		reply(upd, cfg, "No QR found in the image")
+		return
+	}
+	if err != nil {
+		log.Printf("Error scanning QR: %v", err)
+		reply(upd, cfg, "Could not read the image")
+		return
+	}
 
-		if isMoodleQR(link) {
-			handleMoodleQR(link, chatID, cfg)
-		} else {
-			sendMessage(chatID, cfg, fmt.Sprintf("Unsupported QR detected: %s", link)
-		}
-	} else {
-		sendMessage(chatID, cfg, "No QR found in the image")
+	if !isMoodleQR(link) {
+		reply(upd, cfg, fmt.Sprintf("Unsupported QR detected: %s", link))
+		return
+	}
+
+	handleMoodleQR(link, chatID, cfg)
+}
+
+func handleMoodleQR(link string, chatID int64, cfg config.Config) {
+	log.Printf("Moodle QR received in chat %d", chatID)
+	if err := sendMessage(chatID, cfg, "Moodle QR detected, but marking attendance is not implemented yet"); err != nil {
+		log.Printf("Could not send message to chat %d: %v", chatID, err)
 	}
 }
 
@@ -72,11 +75,11 @@ func downloadPhoto(fileID string, cfg config.Config) ([]byte, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err	
+		return nil, err
 	}
-	
+
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, err 
+		return nil, err
 	}
 
 	if !result.OK {
@@ -86,13 +89,17 @@ func downloadPhoto(fileID string, cfg config.Config) ([]byte, error) {
 	downloadURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s",
 		cfg.BotToken, result.Result.FilePath)
 
-	resp, err = http.Get(downloadURL)
+	fileResp, err := http.Get(downloadURL)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer fileResp.Body.Close()
 
-	return io.ReadAll(resp.Body)
+	if fileResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Telegram file download failed: %s", fileResp.Status)
+	}
+
+	return io.ReadAll(fileResp.Body)
 }
 
 func isMoodleQR(link string) bool {

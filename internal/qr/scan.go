@@ -2,32 +2,16 @@ package qr
 
 import (
 	"bytes"
+	"errors"
 	"image"
-	"image/jpeg"
-	"image/png"
-
+	_ "image/jpeg"
+	_ "image/png"
 
 	"github.com/makiuchi-d/gozxing"
-        "github.com/makiuchi-d/gozxing/qrcode"
+	"github.com/makiuchi-d/gozxing/qrcode"
 )
 
-func DetectQR(imageBytes []byte) bool {
-	img, _, err := image.Decode(bytes.NewReader(imageBytes))
-	if err != nil {
-		return false
-	}
-
-	bmp, err := gozxing.NewBinaryBitmapFromImage(img)
-	if err != nil {
-		return false
-	}
-
-	reader := qrcode.NewQRCodeReader()
-
-	_, err := reader.Decode(bmp, nil)
-	
-	return err == nil
-}
+var ErrNoQR = errors.New("no QR code found in the image")
 
 func ScanQR(imageBytes []byte) (string, error) {
 	img, _, err := image.Decode(bytes.NewReader(imageBytes))
@@ -41,10 +25,13 @@ func ScanQR(imageBytes []byte) (string, error) {
 	}
 
 	reader := qrcode.NewQRCodeReader()
+	hints := map[gozxing.DecodeHintType]any{
+		gozxing.DecodeHintType_TRY_HARDER: true,
+	}
 
-	result, err := reader.Decode(bmp, nil)
+	result, err := reader.Decode(bmp, hints)
 	if err != nil {
-		return "", nil
+		return "", ErrNoQR
 	}
 
 	return result.GetText(), nil

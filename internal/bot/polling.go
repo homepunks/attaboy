@@ -35,9 +35,14 @@ func PollUpdates(offset int64, cfg config.Config) {
 			Result []Update `json:"result"`
 		}
 
-		json.Unmarshal(body, &apiResponse)
+		if err := json.Unmarshal(body, &apiResponse); err != nil {
+			log.Printf("Error decoding updates: %v", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
 		if !apiResponse.OK {
 			log.Printf("API error: %v", string(body))
+			time.Sleep(5 * time.Second)
 			continue
 		}
 
@@ -52,6 +57,10 @@ func PollUpdates(offset int64, cfg config.Config) {
 }
 
 func handleUpdate(upd Update, cfg config.Config) {
+	if upd.Message.MessageID == 0 {
+		return
+	}
+
 	if upd.Message.Text != "" {
 		log.Printf("Received: `%s` from %s (@%s)",
 			upd.Message.Text, upd.Message.Chat.Name, upd.Message.Chat.Username)
@@ -67,5 +76,5 @@ func handleUpdate(upd Update, cfg config.Config) {
 }
 
 func handleErr(upd Update, cfg config.Config) {
-	sendMessage(upd.Message.Chat.ID, cfg, "Could not recognize your message. Send me your QR!")
+	reply(upd, cfg, "Could not recognize your message. Send me your QR!")
 }
