@@ -7,15 +7,13 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/homepunks/attaboy/internal/config"
+	"github.com/homepunks/attaboy/internal/moodle"
 	"github.com/homepunks/attaboy/internal/qr"
 )
 
 func handlePhoto(upd Update, cfg config.Config) {
-	chatID := upd.Message.Chat.ID
-
 	if len(upd.Message.Photo) == 0 {
 		reply(upd, cfg, "No photo found")
 		return
@@ -41,18 +39,35 @@ func handlePhoto(upd Update, cfg config.Config) {
 		return
 	}
 
-	if !isMoodleQR(link) {
+	client := moodle.Client{
+		BaseURL:  cfg.MoodleURL,
+		Username: cfg.MoodleUsername,
+		Password: cfg.MoodlePassword,
+	}
+
+	if !client.IsMoodleLink(link) {
 		reply(upd, cfg, fmt.Sprintf("Unsupported QR detected: %s", link))
 		return
 	}
 
-	handleMoodleQR(link, chatID, cfg)
+	handleMoodleQR(upd, cfg, client, link)
 }
 
-func handleMoodleQR(link string, chatID int64, cfg config.Config) {
-	log.Printf("Moodle QR received in chat %d", chatID)
-	if err := sendMessage(chatID, cfg, "Moodle QR detected, but marking attendance is not implemented yet"); err != nil {
-		log.Printf("Could not send message to chat %d: %v", chatID, err)
+func handleMoodleQR(upd Update, cfg config.Config, client moodle.Client, link string) {
+	log.Printf("Marking attendance for %s (@%s)", upd.Message.Chat.Name, upd.Message.Chat.Username)
+
+	result, err := client.MarkAttendance(link)
+	if err != nil {
+		log.Printf("Could not mark attendance: %v", err)
+		reply(upd, cfg, fmt.Sprintf("Could not mark attendance: %v", err))
+		return
+	}
+
+	log.Printf("Moodle replied (ok=%t): %s", result.OK, result.Message)
+	if result.OK {
+		reply(upd, cfg, "Attendance marked: "+result.Message)
+	} else {
+		reply(upd, cfg, "Moodle says: "+result.Message)
 	}
 }
 
@@ -100,8 +115,4 @@ func downloadPhoto(fileID string, cfg config.Config) ([]byte, error) {
 	}
 
 	return io.ReadAll(fileResp.Body)
-}
-
-func isMoodleQR(link string) bool {
-	return strings.Contains(link, "moodle.nu.edu.kz/login/index.php")
 }
