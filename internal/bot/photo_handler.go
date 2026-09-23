@@ -7,6 +7,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/homepunks/attaboy/internal/config"
 	"github.com/homepunks/attaboy/internal/moodle"
@@ -63,12 +67,37 @@ func handleMoodleQR(upd Update, cfg config.Config, client moodle.Client, link st
 		return
 	}
 
-	log.Printf("Moodle replied (ok=%t): %s", result.OK, result.Message)
-	if result.OK {
-		reply(upd, cfg, "Attendance marked: "+result.Message)
-	} else {
-		reply(upd, cfg, "Moodle says: "+result.Message)
+	if (result.OK || alreadyMarked(result.Message)) && firstCheckIn(link) {
+		log.Printf("Attendance marked for %s (@%s)",
+			upd.Message.Chat.Name, upd.Message.Chat.Username)
+		reply(upd, cfg, "Attendance marked")
+		return
 	}
+
+	log.Printf("Moodle replied (ok=%t): %s", result.OK, result.Message)
+	reply(upd, cfg, "Moodle says: "+result.Message)
+}
+
+var checkedIn sync.Map
+
+func firstCheckIn(link string) bool {
+	_, seen := checkedIn.LoadOrStore(sessionKey(link), time.Now())
+	return !seen
+}
+
+func sessionKey(link string) string {
+	u, err := url.Parse(link)
+	if err != nil {
+		return link
+	}
+	if sessid := u.Query().Get("sessid"); sessid != "" {
+		return sessid
+	}
+	return link
+}
+
+func alreadyMarked(message string) bool {
+	return strings.Contains(strings.ToLower(message), "already")
 }
 
 func downloadPhoto(fileID string, cfg config.Config) ([]byte, error) {
